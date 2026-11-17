@@ -22,11 +22,11 @@ let started=0,pausedAt=0,isPaused=false,lastState=null;
 const paper={x:68,y:438,w:410,h:246};
 const shoulder={x:407,y:397},upperLen=92,foreLen=78,penLen=30;
 const writingStrokes=[
-  [{x:205,y:490},{x:205,y:575}],
-  [{x:205,y:532},{x:252,y:532}],
-  [{x:252,y:490},{x:252,y:575}],
-  [{x:292,y:490},{x:340,y:490}],
-  [{x:316,y:490},{x:316,y:575},{x:340,y:575}]
+  [{x:270,y:490},{x:270,y:545}],
+  [{x:270,y:518},{x:315,y:518}],
+  [{x:315,y:490},{x:315,y:545}],
+  [{x:350,y:490},{x:405,y:490}],
+  [{x:378,y:490},{x:378,y:545},{x:405,y:545}]
 ];
 const STROKE_TIME=1.35,LIFT_TIME=.42,WRITE_START=.7,LIFT_HEIGHT=19;
 function pointOnPath(path,u){
@@ -37,7 +37,8 @@ function pointOnPath(path,u){
   return path[path.length-1];
 }
 function writingState(t){
-  let elapsed=Math.max(0,t-WRITE_START),ink=[],target={x:205,y:490},penDown=false,strokeIndex=-1,strokeProgress=0;
+  if(t<WRITE_START)return {ink:[],target:{x:270,y:490},penDown:false,strokeIndex:-1,strokeProgress:0};
+  let elapsed=Math.max(0,t-WRITE_START),ink=[],target={x:270,y:490},penDown=false,strokeIndex=-1,strokeProgress=0;
   for(let i=0;i<writingStrokes.length;i++){
     let path=writingStrokes[i],start=i*(STROKE_TIME+LIFT_TIME);
     if(elapsed<start+STROKE_TIME){
@@ -132,11 +133,14 @@ function drawCharacterBehindPaper(t){
   pop();drawingContext.restore();
 }
 function drawRestingLeftArm(){
-  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,151,676);
-  noStroke();fill(164,112,83);ellipse(151,676,24,24);
-  stroke(166,115,86);strokeWeight(18);line(151,676,218,684);
-  noStroke();fill(183,132,101);ellipse(222,683,27,18);
-  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(216,681,207,674);line(222,682,215,673);
+  // Upper arm disappears behind the sheet; elbow and forearm rest on the desk.
+  drawingContext.save();drawingContext.beginPath();drawingContext.rect(0,paper.y+paper.h-2,W,H);drawingContext.clip();
+  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,137,710);
+  drawingContext.restore();
+  noStroke();fill(164,112,83);ellipse(137,710,25,25);
+  stroke(166,115,86);strokeWeight(18);strokeCap(ROUND);line(137,710,214,682);
+  noStroke();fill(183,132,101);ellipse(220,681,28,19);
+  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(214,680,207,673);line(221,680,215,672);line(227,682,222,674);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
