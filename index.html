@@ -157,8 +157,8 @@ function drawArmAndPen(ik,t,penDown){
   noStroke();fill(178,126,95);ellipse(wrist.x,wrist.y,19,18);
   const a=Math.atan2(tip.y-wrist.y,tip.x-wrist.x);
   push();translate(wrist.x,wrist.y);rotate(a);
-  noStroke();fill(33,43,54);rect(-3,-5,34,10,3);fill(195,157,94);rect(4,-5,3,10,1);
-  fill(210,214,215);triangle(31,-4,31,4,42,0);fill(35,39,44);triangle(40,-1,40,1,44,0);
+  noStroke();fill(33,43,54);rect(-3,-5,20,10,3);fill(195,157,94);rect(4,-5,3,10,1);
+  fill(210,214,215);triangle(17,-4,17,4,28,0);fill(35,39,44);triangle(26,-1,26,1,30,0);
   fill(215,178,105);rect(8,-6,2,12,1);pop();
   noStroke();fill(14,23,31);ellipse(tip.x,tip.y,3.5,3.5);
   if(!penDown){noFill();stroke(225,190,125,80);strokeWeight(1);ellipse(tip.x,tip.y+5,8,8);}
