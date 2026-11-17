@@ -90,7 +90,7 @@ function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
   const zoomProgress=Math.max(0,Math.min(1,t/DURATION));
   const easedZoom=zoomProgress*zoomProgress*(3-2*zoomProgress);
-  const cameraZoom=1.0+0.15*easedZoom;
+  const cameraZoom=1.0+0.10*easedZoom;
   const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
@@ -99,13 +99,13 @@ function renderFrame(t){
   scale(cameraZoom);
   translate(-width/2,-height/2);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawRoomBackground();drawTable();drawCharacterBehindPaper(t);drawLeftArm();drawPaper();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
+  drawRoomBackground(cameraZoom);drawTable();drawCharacterBehindPaper(t);drawPaper();drawLeftArm();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
   drawVignette();
   pop();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
 }
-function drawRoomBackground(){
+function drawRoomBackground(cameraZoom=1){
   // Back wall and window view are painted before all foreground objects.
   noStroke();fill(63,67,72);rect(0,0,W,H);
   const wx=38,wy=48,ww=464,wh=290;
@@ -116,7 +116,13 @@ function drawRoomBackground(){
   }
   // Sun behind the distant ridgeline.
   noStroke();fill(255,218,137);ellipse(wx+350,wy+105,54,54);
-  // Distant and nearer mountain silhouettes.
+  // Mountain layer receives only 20% of the camera's zoom displacement.
+  // This keeps the distant landscape moving more slowly than the foreground.
+  const parallaxZoom=1+(cameraZoom-1)*0.2;
+  push();
+  translate(wx+ww/2,wy+wh/2);
+  scale(parallaxZoom);
+  translate(-(wx+ww/2),-(wy+wh/2));
   fill(119,139,151);
   beginShape();vertex(wx+10,wy+218);vertex(wx+80,wy+120);vertex(wx+130,wy+180);
   vertex(wx+218,wy+92);vertex(wx+295,wy+183);vertex(wx+365,wy+125);
@@ -125,6 +131,7 @@ function drawRoomBackground(){
   beginShape();vertex(wx+10,wy+242);vertex(wx+88,wy+184);vertex(wx+150,wy+220);
   vertex(wx+247,wy+158);vertex(wx+318,wy+218);vertex(wx+ww-10,wy+177);
   vertex(wx+ww-10,wy+wh-10);vertex(wx+10,wy+wh-10);endShape(CLOSE);
+  pop();
   // Wall surrounds the landscape aperture.
   fill(54,52,51);rect(0,0,W,wy);rect(0,wy+wh,W,H-wy-wh);
   rect(0,wy,wx,wh);rect(wx+ww,wy,W-wx-ww,wh);
@@ -172,41 +179,44 @@ function drawCharacterBehindPaper(t){
   pop();drawingContext.restore();
 }
 function drawLeftArm(){
-  // Exact desk-resting pose; the paper naturally hides the middle of the arm.
+  // Exact requested joints, drawn after the torso AND paper so the arm stays connected.
   const characterX=335;
   const characterY=shoulder.y;
   const deskY=690;
-  const shoulderPoint={x:characterX-25,y:characterY};
-  const elbowPoint={x:shoulderPoint.x-30,y:deskY};
-  const handPoint={x:elbowPoint.x+20,y:deskY};
+  const shoulderX=characterX-25;
+  const shoulderY=characterY;
+  const elbowX=shoulderX-30;
+  const elbowY=deskY;
+  const handX=elbowX+20;
+  const handY=deskY;
 
-  // Match the right arm's sleeve color, thickness and rounded joints.
+  // Sleeve matches the right arm: same dark color, 29 px thickness and rounded caps.
   stroke(29,43,57);
   strokeWeight(29);
   strokeCap(ROUND);
   strokeJoin(ROUND);
-  line(shoulderPoint.x,shoulderPoint.y,elbowPoint.x,elbowPoint.y);
+  line(shoulderX,shoulderY,elbowX,elbowY);
   noStroke();
   fill(29,43,57);
-  ellipse(shoulderPoint.x,shoulderPoint.y,29,29);
-  ellipse(elbowPoint.x,elbowPoint.y,29,29);
+  ellipse(shoulderX,shoulderY,29,29);
+  ellipse(elbowX,elbowY,29,29);
 
-  // Match the right forearm's skin tone and 17 px thickness.
+  // Forearm matches the right arm's skin tone and 17 px thickness.
   stroke(163,111,83);
   strokeWeight(17);
   strokeCap(ROUND);
-  line(elbowPoint.x,elbowPoint.y,handPoint.x,handPoint.y);
+  line(elbowX,elbowY,handX,handY);
   noStroke();
   fill(178,126,95);
-  ellipse(handPoint.x,handPoint.y,19,18);
+  ellipse(handX,handY,19,18);
 
-  // Small rounded fingers, resting flat on the desk.
+  // Compact fingers sit along the desk surface.
   stroke(178,126,95);
   strokeWeight(5.5);
   strokeCap(ROUND);
-  line(handPoint.x-5,handPoint.y,handPoint.x-10,handPoint.y-5);
-  line(handPoint.x+1,handPoint.y,handPoint.x,handPoint.y-6);
-  line(handPoint.x+6,handPoint.y,handPoint.x+7,handPoint.y-5);
+  line(handX-5,handY,handX-10,handY-5);
+  line(handX+1,handY,handX,handY-6);
+  line(handX+6,handY,handX+7,handY-5);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
