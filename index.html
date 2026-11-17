@@ -20,6 +20,7 @@ button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius
 const W=540,H=960,DURATION=10.5;
 let started=0,pausedAt=0,isPaused=false,lastState=null;
 const paper={x:68,y:438,w:410,h:246};
+const characterPose={torsoLeft:252,torsoTop:307,leftShoulderOffset:{x:24,y:64}};
 const shoulder={x:407,y:397},upperLen=92,foreLen=78,penLen=30;
 const writingStrokes=[
   [{x:270,y:490},{x:270,y:535}],
@@ -93,7 +94,7 @@ function renderFrame(t){
   background(18,24,32);
   push();translate(273,561);scale(cameraZoom);translate(-273,-561);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawTable();drawLeftArmBehindPaper();drawPaper();drawCharacterBehindPaper(t);drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
+  drawTable();drawCharacterBehindPaper(t);drawLeftArmBehindPaper();drawPaper();drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
   pop();drawVignette();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
@@ -122,7 +123,7 @@ function drawCharacterBehindPaper(t){
   drawingContext.save();drawingContext.beginPath();drawingContext.rect(0,0,W,paper.y+2);drawingContext.clip();
   push();
   // seated torso, dark tailored hoodie
-  noStroke();fill(26,37,49);beginShape();vertex(276,344);bezierVertex(294,316,340,307,371,330);bezierVertex(407,354,429,405,434,477);vertex(252,477);bezierVertex(252,416,252,369,276,344);endShape(CLOSE);
+  noStroke();fill(26,37,49);beginShape();vertex(276,344);bezierVertex(294,316,340,307,371,330);bezierVertex(407,354,429,405,434,477);vertex(characterPose.torsoLeft,477);bezierVertex(characterPose.torsoLeft,416,characterPose.torsoLeft,369,276,344);endShape(CLOSE);
   fill(34,49,63);beginShape();vertex(291,344);bezierVertex(314,363,346,365,370,342);bezierVertex(388,378,399,425,401,476);vertex(279,476);endShape(CLOSE);
   // neck and head
   fill(164,112,83);rect(315,292,37,55,12);
@@ -132,29 +133,30 @@ function drawCharacterBehindPaper(t){
   fill(35,39,44);ellipse(324,274,5,4);ellipse(350,274,5,4);
   stroke(116,76,60);strokeWeight(2);noFill();arc(337,293,20,9,.1,PI-.1);
   // left shoulder; relaxed forearm is posed on the desk below
-  noStroke();fill(31,45,58);ellipse(276,371,76,70);
+  noStroke();fill(31,45,58);ellipse(characterPose.torsoLeft+characterPose.leftShoulderOffset.x,characterPose.torsoTop+characterPose.leftShoulderOffset.y,76,70);
   pop();drawingContext.restore();
 }
 function drawLeftArmBehindPaper(){
-  // Shoulder is anchored at the torso's upper-left edge.
-  // Upper arm bends down to the elbow; forearm rests flat on the desktop,
-  // entirely to the left of the paper.
-  const shoulderL={x:276,y:374};
-  const elbowL={x:158,y:674};
-  const wristL={x:54,y:700};
-  // Dark sleeve from shoulder to elbow, continuous with the torso.
+  // Shoulder is calculated from the same torso anchor used by the character.
+  const shoulderL={
+    x:characterPose.torsoLeft+characterPose.leftShoulderOffset.x,
+    y:characterPose.torsoTop+characterPose.leftShoulderOffset.y
+  };
+  // Upper sleeve descends and angles slightly forward to the bent elbow.
+  const elbowL={x:164,y:699};
+  // Forearm is level with the tabletop and stays left of the sheet.
+  const wristL={x:55,y:699};
   stroke(29,43,57);strokeWeight(31);strokeCap(ROUND);strokeJoin(ROUND);
   line(shoulderL.x,shoulderL.y,elbowL.x,elbowL.y);
   noStroke();fill(39,54,67);ellipse(elbowL.x,elbowL.y,30,30);
-  // Exposed forearm laid along the tabletop.
   stroke(164,112,83);strokeWeight(18);strokeCap(ROUND);
   line(elbowL.x,elbowL.y,wristL.x,wristL.y);
   noStroke();fill(177,126,96);ellipse(wristL.x,wristL.y,22,18);
 }
 function drawLeftHandOnDesk(){
-  noStroke();fill(183,132,101);ellipse(43,700,30,19);
+  noStroke();fill(183,132,101);ellipse(43,699,30,19);
   stroke(183,132,101);strokeWeight(5.5);strokeCap(ROUND);
-  line(34,700,27,692);line(42,700,38,691);line(50,700,49,692);
+  line(34,699,27,691);line(42,699,38,690);line(50,699,49,691);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
