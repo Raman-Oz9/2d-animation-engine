@@ -87,7 +87,8 @@ document.getElementById('play').onclick=()=>isPaused?play():pause();
 document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
 function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
-  const zoomEase=progress*progress*(3-2*progress);\n  const cameraZoom=1+0.1*zoomEase;
+  const zoomEase=progress*progress*(3-2*progress);
+  const cameraZoom=1+0.1*zoomEase;
   const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
