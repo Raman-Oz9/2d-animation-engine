@@ -15,7 +15,7 @@ button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius
 </style>
 </head>
 <body>
-<div class="stage"><div class="hud"><b>INK / STUDY 06</b><span>Multi-stroke writing · HI</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
+<div class="stage"><div class="hud"><b>INK / STUDY 07</b><span>Multi-stroke writing · HI</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
 <script>
 const W=540,H=960,DURATION=10.5;
 let started=0,pausedAt=0,isPaused=false,lastState=null;
@@ -93,7 +93,7 @@ function renderFrame(t){
   background(18,24,32);
   push();translate(273,561);scale(cameraZoom);translate(-273,-561);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawTable();drawPaper();drawInk(state.ink);drawCharacterBehindPaper(t);drawRestingLeftArm();drawArmAndPen(ik,t,state.penDown);
+  drawTable();drawLeftArmBehindPaper();drawPaper();drawCharacterBehindPaper(t);drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
   pop();drawVignette();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
@@ -110,9 +110,12 @@ function drawPaper(){
   stroke(210,205,191,110);strokeWeight(1);line(paper.x+18,paper.y+38,paper.x+paper.w-18,paper.y+38);
   noStroke();fill(100,103,99,90);textSize(9);text('NOTES',paper.x+20,paper.y+25);
 }
-function drawInk(pts){
-  if(pts.length<2)return;noFill();stroke(24,39,55);strokeWeight(2.35);strokeCap(ROUND);strokeJoin(ROUND);
-  beginShape();for(const p of pts)curveVertex(p.x,p.y);endShape();
+function drawInk(strokes){
+  noFill();stroke(24,39,55);strokeWeight(3.1);strokeCap(ROUND);strokeJoin(ROUND);
+  for(const path of strokes){
+    if(!path||path.length<2)continue;
+    beginShape();for(const p of path)vertex(p.x,p.y);endShape();
+  }
 }
 function drawCharacterBehindPaper(t){
   // Body is intentionally clipped at the rear edge of the sheet.
@@ -132,15 +135,19 @@ function drawCharacterBehindPaper(t){
   noStroke();fill(31,45,58);ellipse(276,371,76,70);
   pop();drawingContext.restore();
 }
-function drawRestingLeftArm(){
-  // Upper arm disappears behind the sheet; elbow and forearm rest on the desk.
-  drawingContext.save();drawingContext.beginPath();drawingContext.rect(0,paper.y+paper.h-2,W,H);drawingContext.clip();
-  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,150,700);
-  drawingContext.restore();
-  noStroke();fill(164,112,83);ellipse(150,700,25,25);
-  stroke(166,115,86);strokeWeight(18);strokeCap(ROUND);line(150,700,238,700);
-  noStroke();fill(183,132,101);ellipse(242,700,28,19);
-  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(235,698,228,685);line(242,698,238,684);line(249,699,247,686);
+function drawLeftArmBehindPaper(){
+  // Continuous sleeve from the character's left shoulder to a bent elbow.
+  // The sheet occludes the middle of the arm; the forearm reappears below its edge.
+  stroke(30,43,56);strokeWeight(32);strokeCap(ROUND);
+  line(273,389,174,510);line(174,510,54,660);
+  // Forearm rests on the desktop; the sheet covers the part behind it.
+  stroke(164,112,83);strokeWeight(19);strokeCap(ROUND);line(54,660,145,704);
+  noStroke();fill(164,112,83);ellipse(54,660,23,23);
+}
+function drawLeftHandOnDesk(){
+  noStroke();fill(183,132,101);ellipse(148,704,30,19);
+  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);
+  line(139,702,132,693);line(147,702,143,692);line(155,703,154,694);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
