@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2D Animation Engine — Step 8 Room Landscape</title>
+<title>2D Animation Engine — Study 07 Recovery</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10151c;font-family:system-ui,sans-serif}
@@ -15,7 +15,7 @@ button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius
 </style>
 </head>
 <body>
-<div class="stage"><div class="hud"><b>INK / STUDY 08</b><span>Room landscape · Multi-stroke writing · HI</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
+<div class="stage"><div class="hud"><b>INK / STUDY 07 RECOVERY</b><span>Multi-stroke writing · HI</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
 <script>
 const W=540,H=960,DURATION=10.5;
 let started=0,pausedAt=0,isPaused=false,lastState=null;
@@ -87,54 +87,16 @@ document.getElementById('play').onclick=()=>isPaused?play():pause();
 document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
 function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
-  const zoomEase=progress*progress*(3-2*progress);
-  const cameraZoom=1+0.1*zoomEase;
+  const cameraZoom=1.0;
   const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
   push();translate(273,561);scale(cameraZoom);translate(-273,-561);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawRoomBackground();drawTable();drawCharacterBehindPaper(t);drawLeftArmBehindPaper();drawPaper();drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
+  drawTable();drawLeftArmBehindPaper();drawPaper();drawCharacterBehindPaper(t);drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
   pop();drawVignette();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
-}
-function drawRoomBackground(){
-  // Landscape first; wall panels frame it as a broad window opening.
-  noStroke();fill(107,151,185);rect(0,0,W,H);
-  const wx=38,wy=52,ww=464,wh=286;
-  // warm sunset sky through the window
-  for(let y=0;y<wh;y+=4){
-    const q=y/wh;fill(lerp(95,242,q),lerp(151,166,q),lerp(204,126,q));
-    rect(wx+12,wy+12+y,ww-24,5);
-  }
-  // distant mountain ridges
-  noStroke();fill(95,113,126);
-  beginShape();vertex(wx+12,wy+205);vertex(wx+76,wy+119);vertex(wx+122,wy+165);
-  vertex(wx+207,wy+91);vertex(wx+275,wy+163);vertex(wx+350,wy+112);
-  vertex(wx+ww-12,wy+191);vertex(wx+ww-12,wy+wh-12);vertex(wx+12,wy+wh-12);endShape(CLOSE);
-  fill(68,91,91);
-  beginShape();vertex(wx+12,wy+226);vertex(wx+92,wy+166);vertex(wx+153,wy+210);
-  vertex(wx+250,wy+151);vertex(wx+320,wy+211);vertex(wx+ww-12,wy+172);
-  vertex(wx+ww-12,wy+wh-12);vertex(wx+12,wy+wh-12);endShape(CLOSE);
-  // pine trees in the foreground of the view
-  for(let i=0;i<13;i++){
-    const x=wx+22+i*34,y=wy+wh-18-(i%3)*8;
-    fill(i%2?34:43,65,66);rect(x-3,y-34,6,36);
-    triangle(x,y-78,x-19,y-27,x+19,y-27);
-    triangle(x,y-61,x-16,y-15,x+16,y-15);
-  }
-  // Wall surrounding the opening, then the timber window frame and sill.
-  fill(61,55,52);rect(0,0,W,wy);rect(0,wy+wh,W,H-(wy+wh));
-  rect(0,wy,wx,wh);rect(wx+ww,wy,W-(wx+ww),wh);
-  stroke(255,224,190,17);strokeWeight(2);
-  for(let y=365;y<680;y+=31)line(0,y,W,y);
-  noFill();stroke(35,34,33);strokeWeight(12);rect(wx+5,wy+5,ww-10,wh-10,2);
-  stroke(190,151,112);strokeWeight(5);rect(wx+10,wy+10,ww-20,wh-20,1);
-  line(wx+ww/2,wy+10,wx+ww/2,wy+wh-10);
-  line(wx+10,wy+wh*.58,wx+ww-10,wy+wh*.58);
-  noStroke();fill(115,84,63);rect(wx-8,wy+wh-2,ww+16,13,2);
-  fill(205,169,128);rect(wx-8,wy+wh+9,ww+16,5,2);
 }
 function drawTable(){
   noStroke();fill(42,35,30);rect(0,690,W,270);
@@ -174,20 +136,25 @@ function drawCharacterBehindPaper(t){
   pop();drawingContext.restore();
 }
 function drawLeftArmBehindPaper(){
-  // Upper arm starts at the torso's top-left shoulder and bends at the elbow.
-  // Forearm rests across the tabletop to the left of the sheet.
-  const shoulderL={x:278,y:374},elbowL={x:49,y:692},wristL={x:17,y:704};
+  // Shoulder is anchored at the torso's upper-left edge.
+  // Upper arm bends down to the elbow; forearm rests flat on the desktop,
+  // entirely to the left of the paper.
+  const shoulderL={x:276,y:374};
+  const elbowL={x:158,y:674};
+  const wristL={x:54,y:700};
+  // Dark sleeve from shoulder to elbow, continuous with the torso.
   stroke(29,43,57);strokeWeight(31);strokeCap(ROUND);strokeJoin(ROUND);
   line(shoulderL.x,shoulderL.y,elbowL.x,elbowL.y);
-  noStroke();fill(43,58,71);ellipse(elbowL.x,elbowL.y,30,30);
+  noStroke();fill(39,54,67);ellipse(elbowL.x,elbowL.y,30,30);
+  // Exposed forearm laid along the tabletop.
   stroke(164,112,83);strokeWeight(18);strokeCap(ROUND);
   line(elbowL.x,elbowL.y,wristL.x,wristL.y);
   noStroke();fill(177,126,96);ellipse(wristL.x,wristL.y,22,18);
 }
 function drawLeftHandOnDesk(){
-  noStroke();fill(183,132,101);ellipse(12,704,29,19);
+  noStroke();fill(183,132,101);ellipse(43,700,30,19);
   stroke(183,132,101);strokeWeight(5.5);strokeCap(ROUND);
-  line(4,704,0,697);line(12,704,9,695);line(20,704,19,696);
+  line(34,700,27,692);line(42,700,38,691);line(50,700,49,692);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
