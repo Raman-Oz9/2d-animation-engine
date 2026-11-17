@@ -22,11 +22,11 @@ let started=0,pausedAt=0,isPaused=false,lastState=null;
 const paper={x:68,y:438,w:410,h:246};
 const shoulder={x:407,y:397},upperLen=92,foreLen=78,penLen=30;
 const writingStrokes=[
-  [{x:270,y:490},{x:270,y:545}],
+  [{x:270,y:490},{x:270,y:535}],
   [{x:270,y:518},{x:315,y:518}],
-  [{x:315,y:490},{x:315,y:545}],
+  [{x:315,y:490},{x:315,y:535}],
   [{x:350,y:490},{x:405,y:490}],
-  [{x:378,y:490},{x:378,y:545},{x:405,y:545}]
+  [{x:378,y:490},{x:378,y:535},{x:405,y:535}]
 ];
 const STROKE_TIME=1.35,LIFT_TIME=.42,WRITE_START=.7,LIFT_HEIGHT=19;
 function pointOnPath(path,u){
@@ -37,7 +37,7 @@ function pointOnPath(path,u){
   return path[path.length-1];
 }
 function writingState(t){
-  if(t<WRITE_START)return {ink:[],target:{x:270,y:490},penDown:false,strokeIndex:-1,strokeProgress:0};
+  if(t<WRITE_START)return {ink:[],target:{x:270,y:471},penDown:false,strokeIndex:-1,strokeProgress:0};
   let elapsed=Math.max(0,t-WRITE_START),ink=[],target={x:270,y:490},penDown=false,strokeIndex=-1,strokeProgress=0;
   for(let i=0;i<writingStrokes.length;i++){
     let path=writingStrokes[i],start=i*(STROKE_TIME+LIFT_TIME);
@@ -88,10 +88,10 @@ document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPa
 function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
   const cameraZoom=1+0.105*progress;
-  const penTarget={x:state.target.x,y:state.target.y-(state.penDown?0:LIFT_HEIGHT)};
+  const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
-  push();translate(W/2,H/2);scale(cameraZoom);translate(-W/2,-H/2);
+  push();translate(273,561);scale(cameraZoom);translate(-273,-561);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
   drawTable();drawPaper();drawInk(state.ink);drawCharacterBehindPaper(t);drawRestingLeftArm();drawArmAndPen(ik,t,state.penDown);
   pop();drawVignette();
