@@ -88,14 +88,18 @@ document.getElementById('play').onclick=()=>isPaused?play():pause();
 document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
 function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
-  const cameraZoom=1.0;
+  const cameraZoom=1.0+0.15*Math.max(0,Math.min(1,t/DURATION));
   const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
-  push();translate(273,561);scale(cameraZoom);translate(-273,-561);
+  push();
+  translate(width/2,height/2);
+  scale(cameraZoom);
+  translate(-width/2,-height/2);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawRoomBackground();drawTable();drawCharacterBehindPaper(t);drawLeftArmBehindPaper();drawPaper();drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
-  pop();drawVignette();
+  drawRoomBackground();drawTable();drawCharacterBehindPaper(t);drawLeftArm();drawPaper();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
+  drawVignette();
+  pop();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
 }
@@ -166,24 +170,28 @@ function drawCharacterBehindPaper(t){
   noStroke();fill(31,45,58);ellipse(characterPose.torsoLeft+characterPose.leftShoulderOffset.x,characterPose.torsoTop+characterPose.leftShoulderOffset.y,76,70);
   pop();drawingContext.restore();
 }
-function drawLeftArmBehindPaper(){
-  // Mirror the writing shoulder's vertical position; offset X inward by 40px.
-  const shoulderL={x:shoulder.x-40,y:shoulder.y};
-  // Upper arm drops almost vertically from the shoulder to the elbow.
-  const elbowL={x:shoulderL.x-4,y:675};
-  // Forearm bends outward (left) and lies flat on the desktop.
-  const wristL={x:105,y:690};
+function drawLeftArm(){
+  // Character anchor values are shared with the torso/head pose and right arm.
+  const characterX=335;
+  const characterY=shoulder.y;
+  const deskY=690;
+  const leftShoulder={x:characterX-25,y:characterY};
+  const elbow={x:leftShoulder.x-30,y:deskY};
+  const hand={x:elbow.x+20,y:deskY};
+
+  // Upper arm: same sleeve color, thickness and rounded joins as writing arm.
   stroke(29,43,57);strokeWeight(29);strokeCap(ROUND);strokeJoin(ROUND);
-  line(shoulderL.x,shoulderL.y,elbowL.x,elbowL.y);
-  noStroke();fill(39,54,67);ellipse(elbowL.x,elbowL.y,29,29);
+  line(leftShoulder.x,leftShoulder.y,elbow.x,elbow.y);
+  noStroke();fill(29,43,57);ellipse(elbow.x,elbow.y,29,29);
+
+  // Forearm and hand: same skin tone and line thickness as the right arm.
   stroke(163,111,83);strokeWeight(17);strokeCap(ROUND);
-  line(elbowL.x,elbowL.y,wristL.x,wristL.y);
-  noStroke();fill(178,126,95);ellipse(wristL.x,wristL.y,20,18);
-}
-function drawLeftHandOnDesk(){
-  noStroke();fill(178,126,95);ellipse(91,690,29,19);
+  line(elbow.x,elbow.y,hand.x,hand.y);
+  noStroke();fill(178,126,95);ellipse(hand.x,hand.y,20,18);
   stroke(178,126,95);strokeWeight(5.5);strokeCap(ROUND);
-  line(83,690,77,682);line(91,690,88,681);line(99,690,98,682);
+  line(hand.x-7,hand.y,hand.x-12,hand.y-7);
+  line(hand.x,hand.y,hand.x-2,hand.y-8);
+  line(hand.x+7,hand.y,hand.x+7,hand.y-7);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
