@@ -88,7 +88,9 @@ document.getElementById('play').onclick=()=>isPaused?play():pause();
 document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
 function renderFrame(t){
   const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
-  const cameraZoom=1.0+0.15*Math.max(0,Math.min(1,t/DURATION));
+  const zoomProgress=Math.max(0,Math.min(1,t/DURATION));
+  const easedZoom=zoomProgress*zoomProgress*(3-2*zoomProgress);
+  const cameraZoom=1.0+0.15*easedZoom;
   const penTarget={x:state.target.x,y:state.target.y};
   const ik=solveIK(penTarget);
   background(18,24,32);
@@ -166,32 +168,45 @@ function drawCharacterBehindPaper(t){
   fill(33,36,42);arc(336,252,78,69,PI,TWO_PI);ellipse(302,266,17,35);ellipse(369,265,15,33);
   fill(35,39,44);ellipse(324,274,5,4);ellipse(350,274,5,4);
   stroke(116,76,60);strokeWeight(2);noFill();arc(337,293,20,9,.1,PI-.1);
-  // left shoulder; relaxed forearm is posed on the desk below
-  noStroke();fill(31,45,58);ellipse(characterPose.torsoLeft+characterPose.leftShoulderOffset.x,characterPose.torsoTop+characterPose.leftShoulderOffset.y,76,70);
+  // The left sleeve is drawn by drawLeftArm() in the foreground pass.
   pop();drawingContext.restore();
 }
 function drawLeftArm(){
-  // Character anchor values are shared with the torso/head pose and right arm.
+  // Exact desk-resting pose; the paper naturally hides the middle of the arm.
   const characterX=335;
   const characterY=shoulder.y;
   const deskY=690;
-  const leftShoulder={x:characterX-25,y:characterY};
-  const elbow={x:leftShoulder.x-30,y:deskY};
-  const hand={x:elbow.x+20,y:deskY};
+  const shoulderPoint={x:characterX-25,y:characterY};
+  const elbowPoint={x:shoulderPoint.x-30,y:deskY};
+  const handPoint={x:elbowPoint.x+20,y:deskY};
 
-  // Upper arm: same sleeve color, thickness and rounded joins as writing arm.
-  stroke(29,43,57);strokeWeight(29);strokeCap(ROUND);strokeJoin(ROUND);
-  line(leftShoulder.x,leftShoulder.y,elbow.x,elbow.y);
-  noStroke();fill(29,43,57);ellipse(elbow.x,elbow.y,29,29);
+  // Match the right arm's sleeve color, thickness and rounded joints.
+  stroke(29,43,57);
+  strokeWeight(29);
+  strokeCap(ROUND);
+  strokeJoin(ROUND);
+  line(shoulderPoint.x,shoulderPoint.y,elbowPoint.x,elbowPoint.y);
+  noStroke();
+  fill(29,43,57);
+  ellipse(shoulderPoint.x,shoulderPoint.y,29,29);
+  ellipse(elbowPoint.x,elbowPoint.y,29,29);
 
-  // Forearm and hand: same skin tone and line thickness as the right arm.
-  stroke(163,111,83);strokeWeight(17);strokeCap(ROUND);
-  line(elbow.x,elbow.y,hand.x,hand.y);
-  noStroke();fill(178,126,95);ellipse(hand.x,hand.y,20,18);
-  stroke(178,126,95);strokeWeight(5.5);strokeCap(ROUND);
-  line(hand.x-7,hand.y,hand.x-12,hand.y-7);
-  line(hand.x,hand.y,hand.x-2,hand.y-8);
-  line(hand.x+7,hand.y,hand.x+7,hand.y-7);
+  // Match the right forearm's skin tone and 17 px thickness.
+  stroke(163,111,83);
+  strokeWeight(17);
+  strokeCap(ROUND);
+  line(elbowPoint.x,elbowPoint.y,handPoint.x,handPoint.y);
+  noStroke();
+  fill(178,126,95);
+  ellipse(handPoint.x,handPoint.y,19,18);
+
+  // Small rounded fingers, resting flat on the desk.
+  stroke(178,126,95);
+  strokeWeight(5.5);
+  strokeCap(ROUND);
+  line(handPoint.x-5,handPoint.y,handPoint.x-10,handPoint.y-5);
+  line(handPoint.x+1,handPoint.y,handPoint.x,handPoint.y-6);
+  line(handPoint.x+6,handPoint.y,handPoint.x+7,handPoint.y-5);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
