@@ -15,7 +15,7 @@ button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius
 </style>
 </head>
 <body>
-<div class="stage"><div class="hud"><b>INK / STUDY 05</b><span>Character + environment</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
+<div class="stage"><div class="hud"><b>INK / STUDY 06</b><span>Multi-stroke writing · HI</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
 <script>
 const W=540,H=960,DURATION=10.5;
 let started=0,pausedAt=0,isPaused=false,lastState=null;
@@ -135,12 +135,12 @@ function drawCharacterBehindPaper(t){
 function drawRestingLeftArm(){
   // Upper arm disappears behind the sheet; elbow and forearm rest on the desk.
   drawingContext.save();drawingContext.beginPath();drawingContext.rect(0,paper.y+paper.h-2,W,H);drawingContext.clip();
-  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,137,710);
+  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,150,700);
   drawingContext.restore();
-  noStroke();fill(164,112,83);ellipse(137,710,25,25);
-  stroke(166,115,86);strokeWeight(18);strokeCap(ROUND);line(137,710,214,682);
-  noStroke();fill(183,132,101);ellipse(220,681,28,19);
-  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(214,680,207,673);line(221,680,215,672);line(227,682,222,674);
+  noStroke();fill(164,112,83);ellipse(150,700,25,25);
+  stroke(166,115,86);strokeWeight(18);strokeCap(ROUND);line(150,700,238,700);
+  noStroke();fill(183,132,101);ellipse(242,700,28,19);
+  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(235,698,228,685);line(242,698,238,684);line(249,699,247,686);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
