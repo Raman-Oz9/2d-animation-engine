@@ -17,19 +17,48 @@ button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius
 <body>
 <div class="stage"><div class="hud"><b>INK / STUDY 05</b><span>Character + environment</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
 <script>
-const W=540,H=960,DURATION=5.5;
+const W=540,H=960,DURATION=10.5;
 let started=0,pausedAt=0,isPaused=false,lastState=null;
 const paper={x:68,y:438,w:410,h:246};
 const shoulder={x:407,y:397},upperLen=92,foreLen=78,penLen=30;
-function signaturePoint(u){
-  const x=260+145*u;
-  const y=500+Math.sin(u*Math.PI*5)*8+Math.sin(u*Math.PI*11)*2.2;
-  return {x,y};
+const writingStrokes=[
+  [{x:205,y:490},{x:205,y:575}],
+  [{x:205,y:532},{x:252,y:532}],
+  [{x:252,y:490},{x:252,y:575}],
+  [{x:292,y:490},{x:340,y:490}],
+  [{x:316,y:490},{x:316,y:575},{x:340,y:575}]
+];
+const STROKE_TIME=1.35,LIFT_TIME=.42,WRITE_START=.7,LIFT_HEIGHT=19;
+function pointOnPath(path,u){
+  let lengths=[],total=0;
+  for(let i=1;i<path.length;i++){let d=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y);lengths.push(d);total+=d;}
+  let wanted=u*total;
+  for(let i=0;i<lengths.length;i++){if(wanted<=lengths[i]||i===lengths.length-1){let a=path[i],b=path[i+1],q=lengths[i]?Math.max(0,Math.min(1,wanted/lengths[i])):0;return{x:lerp(a.x,b.x,q),y:lerp(a.y,b.y,q)};}wanted-=lengths[i];}
+  return path[path.length-1];
 }
-function buildInk(progress){
-  const count=Math.max(0,Math.floor(420*progress)),pts=[];
-  for(let i=0;i<count;i++)pts.push(signaturePoint(i/419));
-  return pts;
+function writingState(t){
+  let elapsed=Math.max(0,t-WRITE_START),ink=[],target={x:205,y:490},penDown=false,strokeIndex=-1,strokeProgress=0;
+  for(let i=0;i<writingStrokes.length;i++){
+    let path=writingStrokes[i],start=i*(STROKE_TIME+LIFT_TIME);
+    if(elapsed<start+STROKE_TIME){
+      if(elapsed<start){
+        let q=Math.max(0,Math.min(1,(elapsed-(start-LIFT_TIME))/LIFT_TIME));
+        let from=writingStrokes[i-1][writingStrokes[i-1].length-1],to=path[0],s=q*q*(3-2*q);
+        target={x:lerp(from.x,to.x,s),y:lerp(from.y,to.y,s)-Math.sin(q*Math.PI)*LIFT_HEIGHT};
+      }else{
+        strokeProgress=Math.max(0,Math.min(1,(elapsed-start)/STROKE_TIME));
+        for(let j=0;j<i;j++)ink.push(writingStrokes[j]);
+        let steps=Math.max(2,Math.floor(100*strokeProgress)),partial=[];
+        for(let k=0;k<=steps;k++)partial.push(pointOnPath(path,k/steps));
+        if(strokeProgress>0)ink.push(partial);
+        target=pointOnPath(path,strokeProgress);penDown=true;strokeIndex=i;
+      }
+      return {ink,target,penDown,strokeIndex,strokeProgress};
+    }
+    ink.push(path);
+  }
+  let last=writingStrokes[writingStrokes.length-1];target=last[last.length-1];
+  return {ink,target,penDown,strokeIndex:writingStrokes.length-1,strokeProgress:1};
 }
 function solveIK(target){
   const dx=target.x-shoulder.x,dy=target.y-shoulder.y;
@@ -56,19 +85,17 @@ function pause(){if(!isPaused){pausedAt=(millis()-started)/1000;isPaused=true;}}
 document.getElementById('play').onclick=()=>isPaused?play():pause();
 document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
 function renderFrame(t){
-  const progress=Math.max(0,Math.min(1,(t-.7)/3.8));
-  const u=Math.max(0,Math.min(1,progress));
-  const target=signaturePoint(u),ik=solveIK(target),ink=buildInk(progress);
+  const state=writingState(t),progress=Math.max(0,Math.min(1,(t-WRITE_START)/(DURATION-WRITE_START)));
+  const cameraZoom=1+0.105*progress;
+  const penTarget={x:state.target.x,y:state.target.y-(state.penDown?0:LIFT_HEIGHT)};
+  const ik=solveIK(penTarget);
   background(18,24,32);
-  // soft studio illumination
+  push();translate(W/2,H/2);scale(cameraZoom);translate(-W/2,-H/2);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawTable();
-  drawPaper();
-  drawInk(ink);
-  drawCharacterBehindPaper(t);
-  drawArmAndPen(ik,t);
-  drawVignette();
-  return {time:t,progress,penTip:ik.tip,target,penTipError:ik.error,reachable:ik.reachable,inkPoints:ink.length,cameraZoom:1};
+  drawTable();drawPaper();drawInk(state.ink);drawCharacterBehindPaper(t);drawRestingLeftArm();drawArmAndPen(ik,t,state.penDown);
+  pop();drawVignette();
+  const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
+  return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
 }
 function drawTable(){
   noStroke();fill(42,35,30);rect(0,690,W,270);
@@ -100,11 +127,18 @@ function drawCharacterBehindPaper(t){
   fill(33,36,42);arc(336,252,78,69,PI,TWO_PI);ellipse(302,266,17,35);ellipse(369,265,15,33);
   fill(35,39,44);ellipse(324,274,5,4);ellipse(350,274,5,4);
   stroke(116,76,60);strokeWeight(2);noFill();arc(337,293,20,9,.1,PI-.1);
-  // left shoulder and arm behind paper
-  noStroke();fill(31,45,58);ellipse(276,371,76,70);fill(164,112,83);stroke(164,112,83);strokeWeight(24);line(273,384,246,443);
+  // left shoulder; relaxed forearm is posed on the desk below
+  noStroke();fill(31,45,58);ellipse(276,371,76,70);
   pop();drawingContext.restore();
 }
-function drawArmAndPen(ik,t){
+function drawRestingLeftArm(){
+  stroke(30,43,56);strokeWeight(31);strokeCap(ROUND);line(273,390,151,676);
+  noStroke();fill(164,112,83);ellipse(151,676,24,24);
+  stroke(166,115,86);strokeWeight(18);line(151,676,218,684);
+  noStroke();fill(183,132,101);ellipse(222,683,27,18);
+  stroke(183,132,101);strokeWeight(6);strokeCap(ROUND);line(216,681,207,674);line(222,682,215,673);
+}
+function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
   // upper sleeve and forearm, rounded articulated segments
   stroke(29,43,57);strokeWeight(29);strokeCap(ROUND);line(shoulder.x,shoulder.y,elbow.x,elbow.y);
@@ -112,11 +146,11 @@ function drawArmAndPen(ik,t){
   noStroke();fill(178,126,95);ellipse(wrist.x,wrist.y,19,18);
   const a=Math.atan2(tip.y-wrist.y,tip.x-wrist.x);
   push();translate(wrist.x,wrist.y);rotate(a);
-  // elegant graphite pen barrel, nib points toward the paper
   noStroke();fill(33,43,54);rect(-3,-5,34,10,3);fill(195,157,94);rect(4,-5,3,10,1);
   fill(210,214,215);triangle(31,-4,31,4,42,0);fill(35,39,44);triangle(40,-1,40,1,44,0);
   fill(215,178,105);rect(8,-6,2,12,1);pop();
   noStroke();fill(14,23,31);ellipse(tip.x,tip.y,3.5,3.5);
+  if(!penDown){noFill();stroke(225,190,125,80);strokeWeight(1);ellipse(tip.x,tip.y+5,8,8);}
 }
 function drawVignette(){
   noFill();for(let i=0;i<18;i++){stroke(0,0,0,i*.75);strokeWeight(8);rect(i*4,i*4,W-i*8,H-i*8,18);}
