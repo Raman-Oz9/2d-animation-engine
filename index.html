@@ -94,10 +94,40 @@ function renderFrame(t){
   background(18,24,32);
   push();translate(273,561);scale(cameraZoom);translate(-273,-561);
   noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
-  drawTable();drawCharacterBehindPaper(t);drawLeftArmBehindPaper();drawPaper();drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
+  drawRoomBackground();drawTable();drawCharacterBehindPaper(t);drawLeftArmBehindPaper();drawPaper();drawLeftHandOnDesk();drawInk(state.ink);drawArmAndPen(ik,t,state.penDown);
   pop();drawVignette();
   const inkPoints=state.ink.reduce((n,path)=>n+path.length,0);
   return {time:t,progress,penTip:ik.tip,target:penTarget,penTipError:ik.error,reachable:ik.reachable,inkPoints,penDown:state.penDown,strokeIndex:state.strokeIndex,cameraZoom};
+}
+function drawRoomBackground(){
+  // Back wall and window view are painted before all foreground objects.
+  noStroke();fill(63,67,72);rect(0,0,W,H);
+  const wx=38,wy=48,ww=464,wh=290;
+  // Clear blue sky with a subtle vertical gradient.
+  for(let y=0;y<wh;y+=5){
+    const q=y/wh;fill(lerp(75,160,q),lerp(157,202,q),lerp(220,239,q));
+    rect(wx+10,wy+10+y,ww-20,6);
+  }
+  // Sun behind the distant ridgeline.
+  noStroke();fill(255,218,137);ellipse(wx+350,wy+105,54,54);
+  // Distant and nearer mountain silhouettes.
+  fill(119,139,151);
+  beginShape();vertex(wx+10,wy+218);vertex(wx+80,wy+120);vertex(wx+130,wy+180);
+  vertex(wx+218,wy+92);vertex(wx+295,wy+183);vertex(wx+365,wy+125);
+  vertex(wx+ww-10,wy+205);vertex(wx+ww-10,wy+wh-10);vertex(wx+10,wy+wh-10);endShape(CLOSE);
+  fill(67,103,104);
+  beginShape();vertex(wx+10,wy+242);vertex(wx+88,wy+184);vertex(wx+150,wy+220);
+  vertex(wx+247,wy+158);vertex(wx+318,wy+218);vertex(wx+ww-10,wy+177);
+  vertex(wx+ww-10,wy+wh-10);vertex(wx+10,wy+wh-10);endShape(CLOSE);
+  // Wall surrounds the landscape aperture.
+  fill(54,52,51);rect(0,0,W,wy);rect(0,wy+wh,W,H-wy-wh);
+  rect(0,wy,wx,wh);rect(wx+ww,wy,W-wx-ww,wh);
+  // Window casing and crossbars.
+  noFill();stroke(29,31,34);strokeWeight(13);rect(wx+4,wy+4,ww-8,wh-8,2);
+  stroke(166,132,99);strokeWeight(5);rect(wx+10,wy+10,ww-20,wh-20,1);
+  line(wx+ww/2,wy+10,wx+ww/2,wy+wh-10);
+  line(wx+10,wy+wh*.57,wx+ww-10,wy+wh*.57);
+  noStroke();fill(111,81,60);rect(wx-8,wy+wh-1,ww+16,13,2);
 }
 function drawTable(){
   noStroke();fill(42,35,30);rect(0,690,W,270);
@@ -137,26 +167,23 @@ function drawCharacterBehindPaper(t){
   pop();drawingContext.restore();
 }
 function drawLeftArmBehindPaper(){
-  // Shoulder is calculated from the same torso anchor used by the character.
-  const shoulderL={
-    x:characterPose.torsoLeft+characterPose.leftShoulderOffset.x,
-    y:characterPose.torsoTop+characterPose.leftShoulderOffset.y
-  };
-  // Upper sleeve descends and angles slightly forward to the bent elbow.
-  const elbowL={x:164,y:699};
-  // Forearm is level with the tabletop and stays left of the sheet.
-  const wristL={x:55,y:699};
-  stroke(29,43,57);strokeWeight(31);strokeCap(ROUND);strokeJoin(ROUND);
+  // Mirror the writing shoulder's vertical position; offset X inward by 40px.
+  const shoulderL={x:shoulder.x-40,y:shoulder.y};
+  // Upper arm drops almost vertically from the shoulder to the elbow.
+  const elbowL={x:shoulderL.x-4,y:675};
+  // Forearm bends outward (left) and lies flat on the desktop.
+  const wristL={x:105,y:690};
+  stroke(29,43,57);strokeWeight(29);strokeCap(ROUND);strokeJoin(ROUND);
   line(shoulderL.x,shoulderL.y,elbowL.x,elbowL.y);
-  noStroke();fill(39,54,67);ellipse(elbowL.x,elbowL.y,30,30);
-  stroke(164,112,83);strokeWeight(18);strokeCap(ROUND);
+  noStroke();fill(39,54,67);ellipse(elbowL.x,elbowL.y,29,29);
+  stroke(163,111,83);strokeWeight(17);strokeCap(ROUND);
   line(elbowL.x,elbowL.y,wristL.x,wristL.y);
-  noStroke();fill(177,126,96);ellipse(wristL.x,wristL.y,22,18);
+  noStroke();fill(178,126,95);ellipse(wristL.x,wristL.y,20,18);
 }
 function drawLeftHandOnDesk(){
-  noStroke();fill(183,132,101);ellipse(43,699,30,19);
-  stroke(183,132,101);strokeWeight(5.5);strokeCap(ROUND);
-  line(34,699,27,691);line(42,699,38,690);line(50,699,49,691);
+  noStroke();fill(178,126,95);ellipse(91,690,29,19);
+  stroke(178,126,95);strokeWeight(5.5);strokeCap(ROUND);
+  line(83,690,77,682);line(91,690,88,681);line(99,690,98,682);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
