@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2D Animation Engine — Step 5</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10151c;font-family:system-ui,sans-serif}
+body{display:grid;place-items:center}.stage{height:min(100dvh,177.7778vw);width:min(100vw,56.25dvh);position:relative;background:#151b23;box-shadow:0 18px 70px #0009}
+canvas{display:block;width:100%!important;height:100%!important}
+.hud{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:center;color:#dce5ed;font-size:11px;letter-spacing:.12em;text-transform:uppercase;pointer-events:none}
+.hud span{opacity:.65}.controls{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+button{border:1px solid #ffffff30;background:#202a35;color:#e8eef4;border-radius:20px;padding:7px 13px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="stage"><div class="hud"><b>INK / STUDY 05</b><span>Character + environment</span></div><div class="controls"><button id="play">Play</button><button id="restart">Restart</button></div></div>
+<script>
+const W=540,H=960,DURATION=5.5;
+let started=0,pausedAt=0,isPaused=false,lastState=null;
+const paper={x:68,y:438,w:410,h:246};
+const shoulder={x:407,y:397},upperLen=92,foreLen=78,penLen=30;
+function signaturePoint(u){
+  const x=260+145*u;
+  const y=500+Math.sin(u*Math.PI*5)*8+Math.sin(u*Math.PI*11)*2.2;
+  return {x,y};
+}
+function buildInk(progress){
+  const count=Math.max(0,Math.floor(420*progress)),pts=[];
+  for(let i=0;i<count;i++)pts.push(signaturePoint(i/419));
+  return pts;
+}
+function solveIK(target){
+  const dx=target.x-shoulder.x,dy=target.y-shoulder.y;
+  const dist=Math.hypot(dx,dy),l1=upperLen,l2=foreLen+penLen;
+  const d=Math.min(Math.max(dist,Math.abs(l1-l2)+.001),l1+l2-.001);
+  const a=Math.atan2(dy,dx);
+  const ca=(l1*l1+d*d-l2*l2)/(2*l1*d);
+  const elbowAngle=a-Math.acos(Math.max(-1,Math.min(1,ca)));
+  const elbow={x:shoulder.x+Math.cos(elbowAngle)*l1,y:shoulder.y+Math.sin(elbowAngle)*l1};
+  const wristAngle=Math.atan2(target.y-elbow.y,target.x-elbow.x);
+  const wrist={x:elbow.x+Math.cos(wristAngle)*foreLen,y:elbow.y+Math.sin(wristAngle)*foreLen};
+  const tip={x:wrist.x+Math.cos(wristAngle)*penLen,y:wrist.y+Math.sin(wristAngle)*penLen};
+  return {elbow,wrist,tip,error:Math.hypot(tip.x-target.x,tip.y-target.y),reachable:dist<=l1+l2};
+}
+function setup(){const c=createCanvas(W,H);c.parent(document.querySelector('.stage'));pixelDensity(1);textFont('Arial');started=millis();window.seek=seek;window.play=play;window.pause=pause;}
+function draw(){
+  let t=isPaused?pausedAt:(millis()-started)/1000;
+  if(!isPaused&&t>DURATION){started=millis();t=0;}
+  lastState=renderFrame(t);
+}
+function seek(t){t=Math.max(0,Math.min(DURATION,Number(t)||0));pausedAt=t;isPaused=true;renderFrame(t);return lastState;}
+function play(){if(isPaused){started=millis()-pausedAt*1000;isPaused=false;}}
+function pause(){if(!isPaused){pausedAt=(millis()-started)/1000;isPaused=true;}}
+document.getElementById('play').onclick=()=>isPaused?play():pause();
+document.getElementById('restart').onclick=()=>{pausedAt=0;started=millis();isPaused=false;};
+function renderFrame(t){
+  const progress=Math.max(0,Math.min(1,(t-.7)/3.8));
+  const u=Math.max(0,Math.min(1,progress));
+  const target=signaturePoint(u),ik=solveIK(target),ink=buildInk(progress);
+  background(18,24,32);
+  // soft studio illumination
+  noStroke();for(let r=520;r>30;r-=12){fill(45,57,70,map(r,520,30,0,12));ellipse(275,330,r*1.35,r);}
+  drawTable();
+  drawPaper();
+  drawInk(ink);
+  drawCharacterBehindPaper(t);
+  drawArmAndPen(ik,t);
+  drawVignette();
+  return {time:t,progress,penTip:ik.tip,target,penTipError:ik.error,reachable:ik.reachable,inkPoints:ink.length,cameraZoom:1};
+}
+function drawTable(){
+  noStroke();fill(42,35,30);rect(0,690,W,270);
+  fill(65,51,40);rect(0,690,W,8);
+  for(let i=0;i<10;i++){stroke(115,86,62,18);strokeWeight(2);line(0,720+i*27,W,710+i*27);}
+  noStroke();fill(12,16,22,70);ellipse(280,704,440,35);
+}
+function drawPaper(){
+  drawingContext.save();drawingContext.shadowColor='rgba(0,0,0,.42)';drawingContext.shadowBlur=24;drawingContext.shadowOffsetY=12;
+  noStroke();fill(239,235,222);rect(paper.x,paper.y,paper.w,paper.h,3);drawingContext.restore();
+  stroke(210,205,191,110);strokeWeight(1);line(paper.x+18,paper.y+38,paper.x+paper.w-18,paper.y+38);
+  noStroke();fill(100,103,99,90);textSize(9);text('NOTES',paper.x+20,paper.y+25);
+}
+function drawInk(pts){
+  if(pts.length<2)return;noFill();stroke(24,39,55);strokeWeight(2.35);strokeCap(ROUND);strokeJoin(ROUND);
+  beginShape();for(const p of pts)curveVertex(p.x,p.y);endShape();
+}
+function drawCharacterBehindPaper(t){
+  // Body is intentionally clipped at the rear edge of the sheet.
+  drawingContext.save();drawingContext.beginPath();drawingContext.rect(0,0,W,paper.y+2);drawingContext.clip();
+  push();
+  // seated torso, dark tailored hoodie
+  noStroke();fill(26,37,49);beginShape();vertex(276,344);bezierVertex(294,316,340,307,371,330);bezierVertex(407,354,429,405,434,477);vertex(252,477);bezierVertex(252,416,252,369,276,344);endShape(CLOSE);
+  fill(34,49,63);beginShape();vertex(291,344);bezierVertex(314,363,346,365,370,342);bezierVertex(388,378,399,425,401,476);vertex(279,476);endShape(CLOSE);
+  // neck and head
+  fill(164,112,83);rect(315,292,37,55,12);
+  fill(27,34,42);ellipse(335,266,91,108);
+  fill(190,137,103);ellipse(336,272,70,86);
+  fill(33,36,42);arc(336,252,78,69,PI,TWO_PI);ellipse(302,266,17,35);ellipse(369,265,15,33);
+  fill(35,39,44);ellipse(324,274,5,4);ellipse(350,274,5,4);
+  stroke(116,76,60);strokeWeight(2);noFill();arc(337,293,20,9,.1,PI-.1);
+  // left shoulder and arm behind paper
+  noStroke();fill(31,45,58);ellipse(276,371,76,70);fill(164,112,83);stroke(164,112,83);strokeWeight(24);line(273,384,246,443);
+  pop();drawingContext.restore();
+}
+function drawArmAndPen(ik,t){
+  const {elbow,wrist,tip}=ik;
+  // upper sleeve and forearm, rounded articulated segments
+  stroke(29,43,57);strokeWeight(29);strokeCap(ROUND);line(shoulder.x,shoulder.y,elbow.x,elbow.y);
+  stroke(163,111,83);strokeWeight(17);line(elbow.x,elbow.y,wrist.x,wrist.y);
+  noStroke();fill(178,126,95);ellipse(wrist.x,wrist.y,19,18);
+  const a=Math.atan2(tip.y-wrist.y,tip.x-wrist.x);
+  push();translate(wrist.x,wrist.y);rotate(a);
+  // elegant graphite pen barrel, nib points toward the paper
+  noStroke();fill(33,43,54);rect(-3,-5,34,10,3);fill(195,157,94);rect(4,-5,3,10,1);
+  fill(210,214,215);triangle(31,-4,31,4,42,0);fill(35,39,44);triangle(40,-1,40,1,44,0);
+  fill(215,178,105);rect(8,-6,2,12,1);pop();
+  noStroke();fill(14,23,31);ellipse(tip.x,tip.y,3.5,3.5);
+}
+function drawVignette(){
+  noFill();for(let i=0;i<18;i++){stroke(0,0,0,i*.75);strokeWeight(8);rect(i*4,i*4,W-i*8,H-i*8,18);}
+}
+</script>
+</body></html>
