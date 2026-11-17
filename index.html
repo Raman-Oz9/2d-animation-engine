@@ -175,7 +175,7 @@ function drawCharacterBehindPaper(t){
 function drawLeftArmBehindPaper(){
   // Upper arm starts at the torso's top-left shoulder and bends at the elbow.
   // Forearm rests across the tabletop to the left of the sheet.
-  const shoulderL={x:278,y:374},elbowL={x:190,y:642},wristL={x:54,y:704};
+  const shoulderL={x:278,y:374},elbowL={x:49,y:692},wristL={x:17,y:704};
   stroke(29,43,57);strokeWeight(31);strokeCap(ROUND);strokeJoin(ROUND);
   line(shoulderL.x,shoulderL.y,elbowL.x,elbowL.y);
   noStroke();fill(43,58,71);ellipse(elbowL.x,elbowL.y,30,30);
@@ -184,9 +184,9 @@ function drawLeftArmBehindPaper(){
   noStroke();fill(177,126,96);ellipse(wristL.x,wristL.y,22,18);
 }
 function drawLeftHandOnDesk(){
-  noStroke();fill(183,132,101);ellipse(43,704,31,19);
+  noStroke();fill(183,132,101);ellipse(12,704,29,19);
   stroke(183,132,101);strokeWeight(5.5);strokeCap(ROUND);
-  line(34,704,27,696);line(42,704,38,695);line(50,704,49,696);
+  line(4,704,0,697);line(12,704,9,695);line(20,704,19,696);
 }
 function drawArmAndPen(ik,t,penDown){
   const {elbow,wrist,tip}=ik;
